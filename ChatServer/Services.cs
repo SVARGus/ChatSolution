@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using ChatServer.Models;
+using ChatServer.DTOs;
 
 namespace ChatServer
 {
@@ -31,7 +33,7 @@ namespace ChatServer
         public async Task<User> AuthenticateAsync(LoginRequest request)
         {
             var user = _users.FirstOrDefault(u => u.PhoneNumber == request.PhoneNumber);
-            if (user is null || user.PasswordHash == request.PasswordHash)
+            if (user is null || user.PasswordHash != request.Password)
             {
                 throw new UnauthorizedAccessException("Неверный телефон или пароль");
             }
@@ -66,7 +68,7 @@ namespace ChatServer
                 {
                     Login = request.Login,
                     PhoneNumber = request.PhoneNumber,
-                    PasswordHash = request.PasswordHash // Позже продумать шифрование пароля
+                    PasswordHash = request.Password // Позже продумать шифрование пароля
                 };
 
                 _users.Add(user);

@@ -1,4 +1,4 @@
-﻿namespace ChatServer
+﻿namespace ChatServer.Models
 {
     public class User
     {
@@ -8,6 +8,6 @@
         public string PasswordHash { get; set; } = default!;
         public DateTime RegistrationDateUtc { get; set; } = DateTime.UtcNow;
         public DateTime LastLoginDateUtc {  get; set; } = DateTime.UtcNow;
-        public List<User> Contacts { get; set; } = new List<User>();
+        public List<User> Contacts { get; set; } = new List<User>(); // Позже заменить лист без приватных полей (пароль и прочая информация, например если другой пользователь не добавлен в друзья или в контакты)
     }
 }

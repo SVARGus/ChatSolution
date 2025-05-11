@@ -1,16 +1,18 @@
-﻿namespace ChatServer
+﻿using ChatServer.Models;
+
+namespace ChatServer.DTOs
 {
     public class RegisterRequest
     {
         public string Login { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
-        public string PasswordHash { get; set; } = default!;
+        public string Password { get; set; } = default!;
     }
 
     public class LoginRequest
     {
         public string PhoneNumber { get; set; } = default!;
-        public string PasswordHash { get; set; } = default!;
+        public string Password { get; set; } = default!;
     }
 
     public class UserResponse

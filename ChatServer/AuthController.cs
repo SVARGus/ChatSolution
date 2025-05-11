@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ChatServer.DTOs;
+using ChatServer.Models;
 
-namespace ChatServer
+namespace ChatServer.Controllers
 {
     [ApiController]
     [Route("api/auth")]

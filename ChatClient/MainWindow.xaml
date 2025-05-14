@@ -4,9 +4,66 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ChatClient"
+        xmlns:conv="clr-namespace:ChatClient.Converters" 
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Chat" Height="450" Width="800">
+    <Window.Resources>
+        <DataTemplate x:Key="ChatItemTemplate">
+            <Border Padding="5" CornerRadius="4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding ChatName}" VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Background="Red" Padding="4, 1" CornerRadius="10" Margin="5, 0, 0, 0" Visibility="{Binding UnreadCount, Converter={StaticResource IntToVis}}" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding UnreadCount}" Foreground="White" FontSize="12"/>
+                    </Border> 
+                </Grid>
+            </Border>
 
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding UnreadCount}" Value="0">
+                    <Setter Property="Border.Background" Value="Transparent"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <DataTemplate x:Key="ContactItemTemplate">
+            <StackPanel Orientation="Vertical" Margin="5">
+                <TextBlock Text="{Binding Login}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding PhoneNumber}" FontSize="12" Foreground="Gray"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!--<conv:IntToVisibilityConverter x:Key="IntToVis"/>-->
+    </Window.Resources>
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0" Background="LightGray" x:Name="GridSelectedChat">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <StackPanel Grid.Row="0" Margin="5">
+                <TextBlock Text="Список чатов" FontSize="20" HorizontalAlignment="Center" Margin="5" x:Name="TextBlockHeader"/>
+                <TextBox Width="180" Height="24" Margin="0, 0, 0, 5" x:Name="TextBoxSearch" ToolTip="Поиск..." TextChanged="TextBoxSearch_TextChanged"/>
+            </StackPanel>
+
+            <ListBox Grid.Row="1" x:Name="ListBoxItems" ItemTemplate="{StaticResource ChatItemTemplate}" SelectionChanged="ListBoxItems_SelectionChanged"/>
+
+            <StackPanel Grid.Row="2">
+                <Button Content="Создать новый чат" Height="28" Background="LightSeaGreen" x:Name="ButtonCreateMode" Click="ButtonCreateMode_Click"/>
+                <Button Content="Удалить чат" Height="28" Background="LightSeaGreen" x:Name="ButtonDelete" Click="ButtonDelete_Click" Margin="0,5,0,0"/>
+            </StackPanel>
+            
+        </Grid>
+        
     </Grid>
 </Window>

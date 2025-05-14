@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ChatClient
+﻿
+namespace ChatClient.DTOs
 {
     public class LoginRequest
     {
@@ -31,5 +26,28 @@ namespace ChatClient
         public string Login { get; set; } = default!;
         public string PhoneNumber { get; set; } = default!;
         public string Password { get; set; } = default!;
+    }
+
+    public class ChatSummaryDto
+    {
+        public Guid ChatId { get; set; }
+        public Guid ParticipantId { get; set; }
+        public string ChatName { get; set; } = default!;
+        public string LastMessage { get; set; } = default!;
+        public DateTime LastMessageUtc { get; set; }
+        public int UnreadCount { get; set; }
+    }
+
+    public class ContactDto
+    {
+        public Guid Id { get; set; }
+        public string Login { get; set; } = default!;
+        public string PhoneNumber { get; set; } = default!;
+    }
+
+    public class CreateChatRequest
+    {
+        public Guid CreatorUserId { get; set; }
+        public Guid ParticipantUserId { get; set; }
     }
 }

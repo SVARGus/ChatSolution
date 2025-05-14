@@ -2,8 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:ChatClient"
-             StartupUri="AuthorizationWindow.xaml">
+             StartupUri="AuthorizationWindow.xaml"
+             xmlns:conv="clr-namespace:ChatClient.Converters">
     <Application.Resources>
-         
+        <conv:IntToVisibilityConverter x:Key="IntToVis;assembly=ChatClient"/>
     </Application.Resources>
 </Application>

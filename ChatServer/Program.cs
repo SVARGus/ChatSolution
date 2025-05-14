@@ -1,5 +1,5 @@
 using System.Net;
-using ChatServer;
+using ChatServer.Services;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);

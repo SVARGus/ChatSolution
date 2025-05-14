@@ -6,11 +6,16 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using ChatClient.DTOs;
+using ChatClient.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatClient
 {
     public partial class AuthorizationWindow : Window
     {
+        private readonly IServiceProvider _services;
+        private readonly IChatClientService _chatService;
+
         private readonly HttpClient _httpClient = new HttpClient()
         {
             BaseAddress = new Uri("https://localhost:5000/")
@@ -18,13 +23,22 @@ namespace ChatClient
 
         public AuthorizationWindow()
         {
+            // Получаем сервис из глобального хоста
+            _chatService = ((App)Application.Current)._host.Services
+                .GetRequiredService<IChatClientService>();
+
             InitializeComponent();
             TextBoxPhone.Text = "+7 (";
         }
 
+        public AuthorizationWindow(IChatClientService chatService) : this()
+        {
+            _chatService = chatService;
+        }
+
         private void ButtonRegistration_Click(object sender, RoutedEventArgs e)
         {
-            var regWin = new RegistrationWindow();
+            var regWin = ((App)Application.Current)._host.Services.GetRequiredService<RegistrationWindow>();
             regWin.Owner = this;
             regWin.ShowDialog();
         }
@@ -46,19 +60,19 @@ namespace ChatClient
             try
             {
                 ButtonEnterChat.IsEnabled = false;
-                var response = await _httpClient.PostAsJsonAsync("api/auth/login", loginReq);
-                if (response.IsSuccessStatusCode)
+
+                var user = await _chatService.LoginAsync(loginReq);
+                if (user != null)
                 {
-                    var user = await response.Content.ReadFromJsonAsync<UserResponse>();
-                    var mainWin = new MainWindow(user!);
+                    
+                    var mainWin = new MainWindow(_chatService, user);
                     mainWin.Show();
 
                     this.Close();
                 }
                 else
                 {
-                    var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    MessageBox.Show(error?.Error ?? "Ошибка авторизации");
+                    MessageBox.Show("Неверный номер или пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)

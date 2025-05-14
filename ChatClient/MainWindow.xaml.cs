@@ -2,15 +2,25 @@
 using System.ComponentModel;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Documents;
 using ChatClient.DTOs;
+using ChatClient.Services;
 using ChatClient.ViewModelClient;
 
 namespace ChatClient;
 
-public partial class MainWindow : Window
+
+public partial class MainWindow : Window, INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? propName = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+
+    public ObservableCollection<MessageViewModel> Messages { get; } = new();
+
     private readonly ObservableCollection<ChatSummaryViewModel> _chats = new();
     private readonly ObservableCollection<ContactViewModel> _contacts = new();
 
@@ -20,9 +30,16 @@ public partial class MainWindow : Window
 
     private readonly UserResponse _currentUser;
 
-    public MainWindow(UserResponse user)
+    private readonly IChatClientService _chatService;
+
+    private List<ContactViewModel> _allContacts = new();
+    private ObservableCollection<ContactViewModel> _friends = new();
+
+    public MainWindow(IChatClientService chatService, UserResponse user)
     {
         InitializeComponent();
+        DataContext = this;
+        _chatService = chatService;
         _currentUser = user;
 
         LoadChatsFromServer();
@@ -33,9 +50,10 @@ public partial class MainWindow : Window
 
     private async void LoadChatsFromServer()
     {
-        // Доделать метод
-        // var chats = await _httpClient.GetFromJsonAsync<List<ChatSummaryDto>>("api/chats?userId=...");
-        // foreach (var c in chats) _chats.Add(new ChatSummaryViewModel(c));
+        var dtos = await _chatService.GetUserChatsAsync(_currentUser.Id);
+        _chats.Clear();
+        foreach (var dto in dtos)
+            _chats.Add(new ChatSummaryViewModel(dto));
     }
 
     private async void EnterCreateMode()
@@ -45,15 +63,18 @@ public partial class MainWindow : Window
         ButtonCreateMode.Content = "Начать чат";
         ButtonDelete.Content = "Отмена";
 
-        _contacts.Clear();
         try
         {
-            var httpClient = new HttpClient();
-            var serverContacts = await httpClient.GetFromJsonAsync<List<ContactDto>>("api/users");
-            if (serverContacts is not null)
+            var all = await _chatService.GetAllContactsAsync();
+            _allContacts = all
+                .Where(c => c.Id != _currentUser.Id)
+                .Select(c => new ContactViewModel(c))
+                .ToList();
+
+            _friends.Clear();
+            foreach (var c in _allContacts.Where(c => _currentUser.Contacts.Contains(c.UserId)))
             {
-                foreach (var cnt in serverContacts)
-                    _contacts.Add(new ContactViewModel(cnt));
+                _friends.Add(c);
             }
         }
         catch (Exception ex)
@@ -61,7 +82,7 @@ public partial class MainWindow : Window
             MessageBox.Show("Ошибка при загрузке контактов: " + ex.Message);
         }
 
-        _view = CollectionViewSource.GetDefaultView(_contacts);
+        _view = CollectionViewSource.GetDefaultView(_friends);
         _view.Filter = FilterContacts;
         ListBoxItems.ItemTemplate = (DataTemplate)Resources["ContactItemTemplate"];
         ListBoxItems.ItemsSource = _view;
@@ -97,7 +118,42 @@ public partial class MainWindow : Window
 
     private void TextBoxSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
-        _view.Refresh();
+        var query = TextBoxSearch.Text.Trim();
+
+        if (_isCreateMode)
+        {
+            if (string.IsNullOrEmpty(query))
+            {
+                _view = CollectionViewSource.GetDefaultView(_friends);
+            }
+            else
+            {
+                var filteredFriends = _friends
+                    .Where(c => c.Login.Contains(query, StringComparison.OrdinalIgnoreCase)
+                             || c.PhoneNumber.Contains(query))
+                    .ToList();
+
+                if (filteredFriends.Any())
+                {
+                    _view = CollectionViewSource.GetDefaultView(new ObservableCollection<ContactViewModel>(filteredFriends));
+                }
+                else
+                {
+                    var found = _allContacts
+                        .Where(c => c.Login.Contains(query, StringComparison.OrdinalIgnoreCase)
+                                 || c.PhoneNumber.Contains(query))
+                        .ToList();
+                    _view = CollectionViewSource.GetDefaultView(new ObservableCollection<ContactViewModel>(found));
+                }
+            }
+
+            _view.Filter = null;
+            ListBoxItems.ItemsSource = _view;
+        }
+        else
+        {
+            _view.Refresh();
+        }
     }
 
     private void ButtonCreateMode_Click(object sender, RoutedEventArgs e)
@@ -114,7 +170,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                MessageBox.Show("Выберите контакт для создания чата.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выберите контакт.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
     }
@@ -135,16 +191,54 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ListBoxItems_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private async void ListBoxItems_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (!_isCreateMode && ListBoxItems.SelectedItem is ChatSummaryViewModel chat)
+        if (_isCreateMode)
         {
-            //подгрузить детали чата и показать в правой части окна
+            return;
         }
+
+        if (ListBoxItems.SelectedItem is ChatSummaryViewModel chat)
+        {
+            TextBlockChatHeader.Text = chat.ChatName;
+            Messages.Clear();
+
+            var detail = await _chatService.GetChatAsync(chat.ChatId, _currentUser.Id);
+            foreach (var m in detail.Messages)
+            {
+                bool IsMine = m.SenderId == _currentUser.Id;
+                Messages.Add(new MessageViewModel(m.Id, m.SenderLogin, m.Content, m.TimestampUtc, IsMine));
+            }
+
+            if (Messages.Count > 0)
+            {
+                ListBoxMessages.ScrollIntoView(Messages.Last());
+            }
+        }
+    }
+
+    private async void ButtonSend_Click(object sender, RoutedEventArgs e)
+    {
+        var text = TextBoxNewMessage.Text.Trim();
+        if (string.IsNullOrEmpty(text) || !(ListBoxItems.SelectedItem is ChatSummaryViewModel chat))
+            return;
+
+        // отправляем
+        var sent = await _chatService.SendMessageAsync(chat.ChatId, _currentUser.Id, text);
+        Messages.Add(new MessageViewModel(sent.Id, sent.SenderLogin, sent.Content, sent.TimestampUtc, true));
+
+        TextBoxNewMessage.Clear();
+        ListBoxMessages.ScrollIntoView(Messages.Last());
     }
 
     private async void CreateOrSelectChat(ContactViewModel contact)
     {
+        if (contact.UserId == _currentUser.Id)
+        {
+            MessageBox.Show("Нельзя создать чат с самим собой.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         var existing = _chats.FirstOrDefault(c => c.ParticipantId == contact.UserId);
         if (existing != null)
         {
@@ -154,30 +248,10 @@ public partial class MainWindow : Window
 
         try
         {
-            var httpClient = new HttpClient();
-            var request = new CreateChatRequest
-            {
-                CreatorUserId = _currentUser.Id, 
-                ParticipantUserId = contact.UserId
-            };
-
-            var response = await httpClient.PostAsJsonAsync("api/chats", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var summary = await response.Content.ReadFromJsonAsync<ChatSummaryDto>();
-                if (summary != null)
-                {
-                    var vm = new ChatSummaryViewModel(summary);
-                    _chats.Add(vm);
-                    ListBoxItems.SelectedItem = vm;
-                }
-            }
-            else
-            {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                MessageBox.Show("Ошибка: " + error?.Error ?? "Неизвестная ошибка");
-            }
+            var summary = await _chatService.CreateChatAsync(_currentUser.Id, contact.UserId);
+            var vm = new ChatSummaryViewModel(summary);
+            _chats.Add(vm);
+            ListBoxItems.SelectedItem = vm;
         }
         catch (Exception ex)
         {

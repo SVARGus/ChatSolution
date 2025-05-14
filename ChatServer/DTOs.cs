@@ -28,6 +28,7 @@ namespace ChatServer.DTOs
     public class ChatSummaryDto
     {
         public Guid ChatId { get; set; }
+        public Guid ParticipantId { get; set; }
         public string ChatName { get; set; } = default!;
         public string LastMessage { get; set; } = default!;
         public DateTime LastMessageUtc { get; set; }
@@ -59,5 +60,12 @@ namespace ChatServer.DTOs
     {
         public Guid SenderId {  get; set; }
         public string Content { get; set; } = default!;
+    }
+
+    public class ContactDto
+    {
+        public Guid Id { get; set; }
+        public string Login { get; set; } = default!;
+        public string PhoneNumber { get; set; } = default!;
     }
 }

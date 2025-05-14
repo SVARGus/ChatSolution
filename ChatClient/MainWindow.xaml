@@ -7,8 +7,11 @@
         xmlns:conv="clr-namespace:ChatClient.Converters" 
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Chat" Height="450" Width="800">
+        Title="Chat" Height="450" Width="800" MinWidth="500">
     <Window.Resources>
+        <conv:BubbleBackgroundConverter x:Key="BubbleBackgroundConverter"/>
+        <conv:BubbleMarginConverter     x:Key="BubbleMarginConverter"/>
+        <conv:IntToVisibilityConverter x:Key="IntToVis"/>
         <DataTemplate x:Key="ChatItemTemplate">
             <Border Padding="5" CornerRadius="4">
                 <Grid>
@@ -35,8 +38,6 @@
                 <TextBlock Text="{Binding PhoneNumber}" FontSize="12" Foreground="Gray"/>
             </StackPanel>
         </DataTemplate>
-
-        <!--<conv:IntToVisibilityConverter x:Key="IntToVis"/>-->
     </Window.Resources>
     
     <Grid>
@@ -64,6 +65,69 @@
             </StackPanel>
             
         </Grid>
-        
+
+        <Grid Grid.Column="1" Background="WhiteSmoke">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition/>
+                <!-- сообщения -->
+                <RowDefinition Height="Auto"/>
+                <!-- ввод сообщения -->
+            </Grid.RowDefinitions>
+
+            <!-- Заголовок: имя собеседника -->
+            <TextBlock x:Name="TextBlockChatHeader"
+                       Text="Выберите чат"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Margin="10"/>
+
+            <!-- Список сообщений -->
+            <ListBox Grid.Row="1"
+                     x:Name="ListBoxMessages"
+                     ItemsSource="{Binding Messages}"
+                     Margin="10"
+                     BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="8"
+                                CornerRadius="6"
+                                Background="{Binding IsMine, Converter={StaticResource BubbleBackgroundConverter}}"
+                                Margin="{Binding IsMine, Converter={StaticResource BubbleMarginConverter}}">
+                            <StackPanel>
+                                <!-- Время -->
+                                <TextBlock Text="{Binding TimestampUtc, StringFormat=t}"
+                                           FontSize="10"
+                                           HorizontalAlignment="Right"/>
+                                <!-- Имя отправителя -->
+                                <TextBlock Text="{Binding SenderLogin}"
+                                           FontWeight="Bold"
+                                           Margin="0,4,0,0"/>
+                                <!-- Само сообщение -->
+                                <TextBlock Text="{Binding Content}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Ввод нового сообщения -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10">
+                <TextBox x:Name="TextBoxNewMessage"
+                         MinWidth="200"
+                         Width="Auto"
+                         HorizontalAlignment="Stretch"
+                         VerticalAlignment="Center"
+                         MinHeight="24"
+                         Margin="0,0,5,0"
+                         AcceptsReturn="True"/>
+                <Button Content="Отправить"
+                        Click="ButtonSend_Click"
+                        Padding="10,5"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

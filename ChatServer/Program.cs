@@ -19,6 +19,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<IUserService, UserService>();
+builder.Services.AddSingleton<IChatService, ChatService>();
 
 var app = builder.Build();
 

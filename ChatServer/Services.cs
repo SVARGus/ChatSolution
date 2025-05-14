@@ -284,6 +284,7 @@ namespace ChatServer.Services
             return new ChatSummaryDto
             {
                 ChatId = chat.Id,
+                ParticipantId = other.UserId,
                 ChatName = otherUser?.Login ?? "Групповой чат",
                 LastMessage = lastMsg?.Content ?? "",
                 LastMessageUtc = lastMsg?.TimestampUtc ?? DateTime.MinValue,
